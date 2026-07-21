@@ -26,7 +26,8 @@ public class AiService {
                     """)
             .build();
 
-    private PromptTemplate userTemplate = SystemPromptTemplate.builder()
+    // 사용자 메시지의 {language}, {statement} 자리를 실행 시점의 값으로 치환한다.
+    private PromptTemplate userTemplate = PromptTemplate.builder()
             .template("다음 질문을 {language}로 답변하시오. \n질문 : {statement}")
             .build();
 
@@ -41,7 +42,7 @@ public class AiService {
     public Flux<String> promptTemplate2(String statement, String language) {
         Flux<String> fluxString = chatClient.prompt().messages(
                 systemTemplate.createMessage(),
-                userTemplate.createMessage()
+                userTemplate.createMessage(Map.of("statement", statement, "language", language))
         ).stream().content();
 
         return fluxString;
@@ -66,7 +67,8 @@ public class AiService {
     }
 
     public Flux<String> promptTemplate4(String statement, String language) {
-        return null;
+        // 동일한 결과를 만드는 다른 작성 방식의 자리를 남겨 두되 null은 반환하지 않는다.
+        return promptTemplate3(statement, language);
     }
 
 }

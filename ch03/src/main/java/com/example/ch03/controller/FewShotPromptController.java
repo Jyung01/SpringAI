@@ -1,6 +1,6 @@
 package com.example.ch03.controller;
 
-import com.example.ch03.service.ZeroShotPromptService;
+import com.example.ch03.service.FewShotPromptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Controller;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequiredArgsConstructor
 public class FewShotPromptController {
 
-    private final ZeroShotPromptService service;
+    private final FewShotPromptService service;
 
     @GetMapping("/ai/few-shot-prompt")
     public String promptTemplate() {
@@ -23,8 +23,8 @@ public class FewShotPromptController {
 
     @ResponseBody
     @PostMapping("/ai/few-shot-prompt")
-    public String zeroShotPrompt(String review) {
-        String answer = service.prompt(review);
+    public String fewShotPrompt(String order) {
+        String answer = service.prompt(order);
 
         return answer;
     }
