@@ -1,121 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spring AI</title>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" />
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-	<link href="/css/springai.css" rel="stylesheet" />
-  <script src="/js/springai.js"></script>
-  <script>
-    //##### Speech To Text #####
-    async function stt() {
-      //multipart/form-data 구성
-      const speech = document.getElementById("audioInput").files[0];
-      const formData = new FormData();
-      formData.append('speech', speech);
-
-      // 스피터 보여주기
-      springai.setSpinner("spinner", true);
-
-      //AJAX 통신하기
-      const response = await fetch('/ai/stt', {
-        method: "post",
-				headers: {
-					//Content-Type은 자동 생성되는 것을 사용해야함(파트 구분선 포함)
-					'Accept': 'text/plain'
-				},
-        body: formData
-      });
-
-      //텍스트 질문을 chatPanel에 보여주기
-      const text = await response.text();
-      const textPlaceHolder = document.getElementById("textPlaceHolder");
-      textPlaceHolder.innerHTML = text;
-
-      //스피너 숨기기
-      springai.setSpinner("spinner", false);
-    }
-
-    // ##### Text To Speech #####
-    async function tts() {
-      // 텍스트 얻기
-      const text = document.getElementById("textInput").value;
-
-      // 스피터 보여주기
-      springai.setSpinner("spinner", true);
-
-      // AJAX 통신하기
-      const response = await fetch('/ai/tts', {
-        method: "post",
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-					'Accept': 'application/octet-stream'
-				},				
-        body: new URLSearchParams({ text: text })
-      });
-
-      // 음성 재생
-      const audioPlayer = document.getElementById("audioPlayer");
-      springai.voice.playAudioFormStreamingData(response, audioPlayer);
-
-      //오디오 재생이 시작되면 스피너 숨기기
-      audioPlayer.addEventListener("play", () => {
-        springai.setSpinner("spinner", false);
-      }, { once: true });	
-
-      
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STT / TTS 테스트</title>
+    <link href="/css/springai.css" rel="stylesheet">
+    <script src="/js/ollama-voice.js"></script>
+    <style>
+        body { width: min(800px, calc(100% - 32px)); margin: 28px auto; font-family: sans-serif; }
+        section { padding: 20px; margin: 20px 0; border: 1px solid #ddd; border-radius: 12px; }
+        textarea { width: 100%; min-height: 110px; box-sizing: border-box; padding: 12px; }
+        button { margin-top: 10px; padding: 10px 16px; cursor: pointer; }
+        #status { color: #126b45; }
+    </style>
 </head>
-
 <body>
-  <div class="d-flex flex-column vh-100">
-    <nav class="navbar justify-content-between">
-      <a href="/" class="navbar-brand ps-2">
-        <img src="/image/spring_ai_logo_with_text.svg" width="200" />
-      </a>
-      <div id="spinner" class="spinner-border text-success d-none me-3" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>      
-    </nav>
+    <a href="/">← 목록</a>
+    <h1>STT / TTS 테스트</h1>
+    <p id="status">Chrome 또는 Edge에서 마이크 권한을 허용해 주세요.</p>
 
-    <div class="flex-grow-1 container-fluid h-100 my-2" style="overflow-y:auto; overflow-x:hidden;">
-      <div class="card">
-        <div class="card-header">STT 테스트</div>
-        <div class="card-body">
-          <label>오디오 입력</label>
-          <div class="input-group p-2">
-            <input id="audioInput" type="file" class="form-control">
-            <button type="button" class="btn btn-info btn-sm" onclick="stt()">제출</button>
-          </div>
-          <hr />
-          <div class="input-group p-2">
-            <span class="input-group-text">변환된 텍스트</span>
-            <textarea id="textPlaceHolder" class="form-control"></textarea>
-          </div>
-        </div>
-      </div>
+    <section>
+        <h2>Speech To Text</h2>
+        <button id="recordButton" type="button">음성 인식 시작</button>
+        <textarea id="recognizedText" placeholder="인식된 문장이 표시됩니다."></textarea>
+    </section>
 
-      <div class="card mt-4">
-        <div class="card-header">TTS 테스트</div>
-        <div class="card-body">
-          <div class="input-group p-2">
-            <span class="input-group-text">텍스트 입력</span>
-            <textarea id="textInput" class="form-control"></textarea>
-            <button type="button" class="btn btn-info btn-sm" onclick="tts()">제출</button>
-          </div>
-          <hr />
-          <div class="input-group p-2">
-            <span class="input-group-text me-2">변환된 음성</span>
-            <audio id="audioPlayer" controls></audio>
-          </div>
-        </div>
-      </div>
-    </div>
+    <section>
+        <h2>Text To Speech</h2>
+        <textarea id="ttsText" placeholder="읽을 문장을 입력하세요.">안녕하세요. 브라우저 음성 읽기 테스트입니다.</textarea>
+        <button id="speakButton" type="button">음성 재생</button>
+        <button id="stopButton" type="button">재생 중지</button>
+    </section>
+
+    <script>
+        const statusElement = document.getElementById('status');
+        const recognizedText = document.getElementById('recognizedText');
+
+        document.getElementById('recordButton').addEventListener('click', () => {
+            ollamaVoice.recognize({
+                onStart: () => statusElement.textContent = '말씀해 주세요...',
+                onResult: text => {
+                    recognizedText.value = text;
+                    statusElement.textContent = '음성 인식이 완료되었습니다.';
+                },
+                onError: message => statusElement.textContent = message
+            });
+        });
+
+        document.getElementById('speakButton').addEventListener('click', () => {
+            ollamaVoice.speak(document.getElementById('ttsText').value);
+        });
+
+        document.getElementById('stopButton').addEventListener('click', ollamaVoice.stopSpeaking);
+    </script>
 </body>
-
 </html>

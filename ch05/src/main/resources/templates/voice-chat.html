@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama 음성 대화</title>
+    <link href="/css/springai.css" rel="stylesheet">
+    <script src="/js/ollama-voice.js"></script>
+    <style>
+        body { width: min(860px, calc(100% - 32px)); margin: 24px auto; font-family: sans-serif; }
+        #chatPanel { height: 520px; overflow-y: auto; padding: 16px; border: 1px solid #ddd; border-radius: 12px; background: #fafafa; }
+        .message { max-width: 78%; margin: 12px 0; padding: 12px 14px; border-radius: 12px; white-space: pre-wrap; line-height: 1.55; }
+        .user { margin-left: auto; background: #fff3d6; }
+        .assistant { background: #eaf7ef; }
+        .controls { display: flex; gap: 8px; margin-top: 12px; }
+        input { flex: 1; padding: 12px; }
+        button { padding: 10px 14px; cursor: pointer; }
+        #status { min-height: 24px; color: #126b45; }
+    </style>
+</head>
+<body>
+    <a href="/">← 목록</a>
+    <h1>Ollama 음성 대화</h1>
+    <p>음성 인식·읽기는 브라우저, 답변 생성은 Ollama가 담당합니다.</p>
+    <div id="chatPanel">
+        <div class="message assistant">마이크 버튼을 누르고 질문하거나 아래 입력창에 직접 작성해 주세요.</div>
+    </div>
+    <p id="status">대기 중</p>
+    <div class="controls">
+        <input id="question" type="text" placeholder="질문을 입력하세요">
+        <button id="sendButton" type="button">전송</button>
+        <button id="micButton" type="button">🎤 음성 질문</button>
+        <button id="stopButton" type="button">🔇 음성 중지</button>
+    </div>
+
+    <script>
+        const chatPanel = document.getElementById('chatPanel');
+        const questionInput = document.getElementById('question');
+        const statusElement = document.getElementById('status');
+
+        function addMessage(text, type) {
+            const element = document.createElement('div');
+            element.className = `message ${type}`;
+            element.textContent = text;
+            chatPanel.appendChild(element);
+            chatPanel.scrollTop = chatPanel.scrollHeight;
+            return element;
+        }
+
+        async function ask(question) {
+            const cleanQuestion = question.trim();
+            if (!cleanQuestion) return;
+
+            questionInput.value = '';
+            addMessage(cleanQuestion, 'user');
+            const answerElement = addMessage('', 'assistant');
+            statusElement.textContent = 'Ollama가 답변을 생성하고 있습니다...';
+
+            try {
+                const answer = await ollamaVoice.streamChat(cleanQuestion, chunk => {
+                    answerElement.textContent += chunk;
+                    chatPanel.scrollTop = chatPanel.scrollHeight;
+                });
+                statusElement.textContent = '답변 완료';
+                ollamaVoice.speak(answer);
+            } catch (error) {
+                answerElement.textContent = `요청 실패: ${error.message}`;
+                statusElement.textContent = 'Ollama 연결 상태를 확인해 주세요.';
+            }
+        }
+
+        document.getElementById('sendButton').addEventListener('click', () => ask(questionInput.value));
+        questionInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') ask(questionInput.value);
+        });
+
+        document.getElementById('micButton').addEventListener('click', () => {
+            ollamaVoice.recognize({
+                onStart: () => statusElement.textContent = '말씀해 주세요...',
+                onResult: text => ask(text),
+                onError: message => statusElement.textContent = message
+            });
+        });
+
+        document.getElementById('stopButton').addEventListener('click', ollamaVoice.stopSpeaking);
+    </script>
+</body>
+</html>
