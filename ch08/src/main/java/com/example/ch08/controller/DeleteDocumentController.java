@@ -27,6 +27,6 @@ public class DeleteDocumentController {
         // 화면의 질문 값은 예제 설명용이며, Service에 정의된 메타데이터 조건으로 삭제한다.
         service.deleteDocument();
 
-        return "헌법 문서 중 연도가 1987 이상인 문서를 삭제했습니다.";
+        return "주문취소에 관련된 문서를 삭제했습니다.";
     }
 }

@@ -27,8 +27,7 @@ public class SearchDocument1Service {
                 SearchRequest.builder()
                         .query(question)
                         .topK(1)
-                        .similarityThreshold(0.5)
-                        .filterExpression("source == '헌법' && year >= 1987")
+                        .similarityThreshold(0.3)
                         .build()
         );
 
